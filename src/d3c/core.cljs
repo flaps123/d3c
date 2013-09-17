@@ -1,9 +1,10 @@
 (ns d3c.core
-  (:require [strokes :refer [d3]]))
+  (:require [cljs.core :as core]
+            [strokes :refer [d3]]))
 
 (strokes/bootstrap)
 
-(let [strkey #(if (keyword? %) (name %) %)]
+(let [strkey #(if (core/keyword? %) (name %) %)]
   (extend-type object
     ILookup
     (-lookup
@@ -68,7 +69,7 @@
 
 (defn unify! [sel data dom]
   (-> sel
-    (.data data)
+    (.data (clj->js data))
     .enter
     (append! dom)))
 
