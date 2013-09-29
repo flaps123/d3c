@@ -32,7 +32,8 @@
    (str "scale(" sx ", " sy ")")))
 
 (defn configure! [sel settings]
-  (let [fns {:attr #(.attr %1 %2)
+  (let [fns {:data #(.data %)
+             :attr #(.attr %1 %2)
              :style #(.style %1 %2)}]
     (if (seq settings)
       (let [[k v] (first settings)
