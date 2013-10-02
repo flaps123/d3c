@@ -52,7 +52,9 @@
   sel)
 
 (defn append! [sel & elems]
-  (loop [sel sel, last-sel sel, elems elems]
+  (loop [sel sel
+         last-sel sel
+         elems elems]
     (if (seq elems)
       (let [[el settings & children] (first elems)
             one #(if-let [v (%2 settings)]
@@ -67,6 +69,13 @@
                  (append-children! children))
                (rest elems)))
       last-sel)))
+
+(defn insert-before! [sel selector elem]
+  (let [[el settings & children] elem]
+    (-> sel
+      (.insert (name el) selector)
+      (configure! settings)
+      (append-children! children))))
 
 (defn unify! [sel data dom]
   (-> sel
