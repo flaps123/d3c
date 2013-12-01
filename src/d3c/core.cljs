@@ -122,9 +122,8 @@
               (.call axis))
         tr (.functor d3 tr)]
     (append! (.selectAll sel ".tick.major")
-             [:g {:attr {:class "label"}}])
-    (configure! (.selectAll sel ".tick.major .label")
-                {:attr {:transform #(translate 0 (tr %))}})
+             [:g {:attr {:class "label"
+                         :transform #(translate 0 (tr %))}}])
     (-> sel
       (.selectAll ".tick.major text")
       (.each (fn [d i]
@@ -133,13 +132,12 @@
                                       (.select (.-parentNode this))
                                       (.select ".label"))
                               {:keys [x y width height]} (.getBBox this)]
-                          (-> label
-                            (.insert "rect" "text")
-                            (configure! {:attr {:x x
-                                                :y y
-                                                :width width
-                                                :height height
-                                                :fill "white"}}))
+                          (insert-before! label "text"
+                                          [:rect {:attr {:x x
+                                                         :y y
+                                                         :width width
+                                                         :height height
+                                                         :fill "white"}}])
                           (-> label
                             .node
                             (.appendChild this)))))))))
