@@ -22,6 +22,9 @@
       (aset this (strkey k) v)
       this)))
 
+(defn transformations [& ts]
+  (.join (clj->js ts) " "))
+
 (defn translate [dx dy]
   (str "translate(" dx ", " dy ")"))
 
@@ -85,59 +88,3 @@
 
 (defn bind! [sel selector data dom]
   (unify! (.selectAll sel selector) data dom))
-
-(defn svg [sel {:keys [width height]}]
-  (append! sel [:svg {:attr {:width width
-                             :height height}}]))
-
-(defn zoomable [sel]
-  (let [outer sel
-        inner (.append outer "g")]
-    (.call outer (-> d3 :behavior .zoom
-                   (.on "zoom" #(let [[dx dy] (-> d3 :event :translate)]
-                                   (.attr inner "transform" (str (translate dx dy)
-                                                                 "scale(" (-> d3 :event :scale) ")"))))))
-    inner))
-
-(defn margined [sel {:keys [left top] :or {left 0 top 0}}]
-  (append! sel [:g {:attr {:transform (translate left top)}}]))
-
-(defn centered [sel {width :inner-width height :inner-height}]
-  (append! sel [:g {:attr {:transform (translate (/ width 2) (/ height 2))}}]))
-
-(defn bordered-text [sel cls data]
-  (bind! sel (str "." cls) data
-         [:g {:attr {:class cls}}
-          [:text {:attr {:class "text-border"}}]])
-  (-> sel
-    (.selectAll (str "." cls))
-    (.append "text"))
-  (-> sel
-    (.selectAll (str "." cls))))
-
-(defn ticks [sel cls axis tr]
-  (let [sel (-> sel
-              (.append "g")
-              (.attr "class" cls)
-              (.call axis))
-        tr (.functor d3 tr)]
-    (append! (.selectAll sel ".tick.major")
-             [:g {:attr {:class "label"
-                         :transform #(translate 0 (tr %))}}])
-    (-> sel
-      (.selectAll ".tick.major text")
-      (.each (fn [d i]
-               (this-as this
-                        (let [label (-> d3
-                                      (.select (.-parentNode this))
-                                      (.select ".label"))
-                              {:keys [x y width height]} (.getBBox this)]
-                          (insert-before! label "text"
-                                          [:rect {:attr {:x x
-                                                         :y y
-                                                         :width width
-                                                         :height height
-                                                         :fill "white"}}])
-                          (-> label
-                            .node
-                            (.appendChild this)))))))))
