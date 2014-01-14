@@ -34,6 +34,9 @@
   ([sx sy]
    (str "scale(" sx ", " sy ")")))
 
+(defn rotate [x]
+  (str "rotate(" x ")"))
+
 (defn configure! [sel settings]
   (let [fns {:data #(.data %)
              :attr #(.attr %1 %2)
@@ -73,12 +76,24 @@
                (rest elems)))
       last-sel)))
 
-(defn insert-before! [sel selector elem]
-  (let [[el settings & children] elem]
-    (-> sel
-      (.insert (name el) selector)
-      (configure! settings)
-      (append-children! children))))
+(defn insert-before! [sel selector & elems]
+  (loop [sel sel
+         last-sel sel
+         elems elems]
+    (if (seq elems)
+      (let [[el settings & children] (first elems)
+            one #(if-let [v (%2 settings)]
+                   (%3 %1 v)
+                   %1)]
+        (recur sel
+               (-> sel
+                 (one :datum #(.datum %1 (clj->js %2)))
+                 (.insert (name el) selector)
+                 (configure! settings)
+                 (one :text #(.text %1 %2))
+                 (append-children! children))
+               (rest elems)))
+      last-sel)))
 
 (defn unify! [sel data dom]
   (-> sel
