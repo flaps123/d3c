@@ -57,43 +57,31 @@
     (append! sel child))
   sel)
 
-(defn append! [sel & elems]
-  (loop [sel sel
-         last-sel sel
-         elems elems]
-    (if (seq elems)
-      (let [[el settings & children] (first elems)
-            one #(if-let [v (%2 settings)]
-                   (%3 %1 v)
-                   %1)]
-        (recur sel
-               (-> sel
-                 (one :datum #(.datum %1 (clj->js %2)))
-                 (.append (name el))
-                 (configure! settings)
-                 (one :text #(.text %1 %2))
-                 (append-children! children))
-               (rest elems)))
-      last-sel)))
+(defn mod! [f]
+  (fn [sel & elems]
+    (loop [sel sel
+           last-sel sel
+           elems elems]
+      (if (seq elems)
+        (let [[el settings & children] (first elems)
+              one (fn [sel attr f]
+                    (if-let [value (attr settings)]
+                      (f sel value)
+                      sel))]
+          (recur sel
+                 (-> sel
+                   (one :datum #(.datum %1 (clj->js %2)))
+                   (f (name el))
+                   (configure! settings)
+                   (one :text #(.text %1 %2))
+                   (append-children! children))
+                 (rest elems)))
+        last-sel))))
+
+(def append! (mod! #(.append %1 %2)))
 
 (defn insert-before! [sel selector & elems]
-  (loop [sel sel
-         last-sel sel
-         elems elems]
-    (if (seq elems)
-      (let [[el settings & children] (first elems)
-            one #(if-let [v (%2 settings)]
-                   (%3 %1 v)
-                   %1)]
-        (recur sel
-               (-> sel
-                 (one :datum #(.datum %1 (clj->js %2)))
-                 (.insert (name el) selector)
-                 (configure! settings)
-                 (one :text #(.text %1 %2))
-                 (append-children! children))
-               (rest elems)))
-      last-sel)))
+  (apply (mod! #(.insert %1 %2 selector)) sel elems))
 
 (defn unify! [sel data dom]
   (-> sel
