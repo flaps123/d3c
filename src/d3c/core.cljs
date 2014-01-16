@@ -45,7 +45,7 @@
       (let [[k v] (first settings)
             f (fns k)]
         (recur (if f
-                 (f sel (clj->js v))
+                 (f sel v)
                  sel)
                (rest settings)))
       sel)))
