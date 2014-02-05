@@ -22,6 +22,14 @@
       (aset this (strkey k) v)
       this)))
 
+(set! (.. js/d3 -selection -prototype -attrs)
+      (fn [f]
+        (this-as sel
+          (.each sel (fn []
+                       (this-as el
+                         (.attr (.select d3 el)
+                                (. f (apply el js/arguments)))))))))
+
 (defn transformations [& ts]
   (.join (clj->js ts) " "))
 
@@ -37,18 +45,20 @@
 (defn rotate [x]
   (str "rotate(" x ")"))
 
-(defn configure! [sel settings]
-  (let [fns {:attr #(.attr %1 %2)
-             :style #(.style %1 %2)
-             :text #(.text %1 %2)}]
-    (if (seq settings)
-      (let [[k v] (first settings)
-            f (fns k)]
-        (recur (if f
-                 (f sel v)
-                 sel)
-               (rest settings)))
-      sel)))
+(defn configure! [sel {:keys [attrs attr style text html on]}]
+  (when attrs
+    (.attrs sel attrs))
+  (doseq [[k v] attr]
+    (.attr sel (name k) v))
+  (doseq [[k v] style]
+    (.style sel (name k) v))
+  (when text
+    (.text sel text))
+  (when html
+    (.html sel html))
+  (doseq [[k v] on]
+    (.on sel (name k) v))
+  sel)
 
 (declare append!)
 
@@ -78,10 +88,10 @@
                  (-> sel
                    (one :datum (fn [sel d]
                                  (.datum sel d)))
-                   (one :join (fn [sel [selector data]]
+                   (one :join (fn [sel [selector d]]
                                 (-> sel
                                   (.selectAll selector)
-                                  (.data data)
+                                  (.data (if (keyword? d) #(d %) d))
                                   .enter)))
                    (f (name el))
                    (configure! settings)

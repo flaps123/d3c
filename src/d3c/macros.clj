@@ -1,7 +1,7 @@
 (ns d3c.macros
   (:require [clojure.walk :as walk]))
 
-(defmacro bound [bindings form]
+(defmacro ^{:deprecated "0.1.2"} bound [bindings form]
   (->> form
     (walk/prewalk (fn [form]
                     (if (or (symbol? form)

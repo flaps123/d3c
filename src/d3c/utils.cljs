@@ -1,5 +1,6 @@
 (ns d3c.utils
-  (:require [strokes :refer [d3]]
+  (:require [cljs.reader :as reader]
+            [strokes :refer [d3]]
             [d3c.core :as d3c]))
 
 (defn zoom-to [sel percent [full-width full-height]]
