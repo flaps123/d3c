@@ -1,6 +1,8 @@
 (ns d3c.core
   (:require [cljs.core :as core]
-            [strokes :refer [d3]]))
+            [strokes]))
+
+(def d3 strokes/d3)
 
 (strokes/bootstrap)
 

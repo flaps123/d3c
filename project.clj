@@ -1,4 +1,4 @@
-(defproject d3c "0.1.2-SNAPSHOT"
+(defproject d3c "0.2.0"
   :description "D3 library for ClojureScript"
   :url "http://clojars.org/d3c"
   :license {:name "Eclipse Public License"
