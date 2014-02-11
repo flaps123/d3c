@@ -47,7 +47,7 @@
 (defn rotate [x]
   (str "rotate(" x ")"))
 
-(defn configure! [sel {:keys [attrs attr style text html on]}]
+(defn configure! [sel {:keys [attrs attr style text html property on]}]
   (when attrs
     (.attrs sel attrs))
   (doseq [[k v] attr]
@@ -58,6 +58,8 @@
     (.text sel text))
   (when html
     (.html sel html))
+  (doseq [[k v] property]
+    (.property sel (name k) v))
   (doseq [[k v] on]
     (.on sel (name k) v))
   sel)
