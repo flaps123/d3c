@@ -6,6 +6,8 @@ A ClojureScript library to interface with [d3](http://d3js.org/). Built on [stro
 
 Include `d3c` in your dependencies:
 
+![Latest version](https://clojars.org/d3c/latest-version.svg)
+
 ## Usage
 
 Import `d3` (proxied from strokes):
