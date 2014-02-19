@@ -12,7 +12,10 @@
       (d3c/scale (* percent scale))
       (apply d3c/translate (map - center)))))
 
-(defn stroked-text [{:keys [text] :as settings}]
-  [:g (dissoc settings :text)
-   [:text {:text text :attr {:class "stroke"}}]
-   [:text {:text text}]])
+(defn stroked-text
+  ([{:keys [text] :as settings}]
+   (stroked-text (dissoc settings :text) {:text text}))
+  ([g-settings text-settings]
+   [:g g-settings
+    [:text (update-in text-settings [:attr :class] str " stroke")]
+    [:text text-settings]]))
