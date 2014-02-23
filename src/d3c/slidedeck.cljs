@@ -6,10 +6,14 @@
             [d3c.utils])
   (:require-macros [cljs.core.async.macros :refer [go alt!]]))
 
-(defn from-to [x]
-  (with-meta x {:transition true}))
 
-(reader/register-tag-parser! 'from-to from-to)
+(reader/register-tag-parser! 'from-to
+  (fn [x]
+    (with-meta x {:transition true})))
+
+(reader/register-tag-parser! 'static
+  (fn [x]
+    (with-meta [x x] {:transition true})))
 
 (reader/register-tag-parser! 'attr
   (fn [attr]
@@ -27,7 +31,7 @@
   (fn [seconds]
     {:transition :wait :delay seconds}))
 
-(reader/register-tag-parser! 'zoom-to zoom-to
+(reader/register-tag-parser! 'zoom-to
   (fn [{percent :scale size :size}]
     #(this-as this
        (d3c.utils/zoom-to (.select d3 this) percent size))))
@@ -90,7 +94,10 @@
                :else settings))
            transition))
 
-(defn transition [slide direction {:keys [default-duration]}]
+(defn collapse-tween [{:keys [tween] :as transition}]
+  (merge (dissoc transition :tween) tween))
+
+(defn transition [slide initial direction {:keys [default-duration]}]
   (fn []
     (go
       (doseq [{t :transition
@@ -104,17 +111,16 @@
         (if (= :wait t)
           (<! (timeout (* 1000 d)))
           (-> (.selectAll d3 sel)
+            (d3c/configure! (initial (collapse-tween t)))
             .transition
             (.delay (if (fn? d) d (* 1000 d)))
             (.duration (* 1000 dur))
-            (.ease (if (= direction forward)
-                     easing
-                     (str easing "-out")))
+            (.ease easing)
             (d3c/configure! (direction t))))))))
 
 (defn make-slide [slide options]
-  {:backward (transition (reverse slide) backward options)
-   :forward (transition slide forward options)})
+  {:backward (transition (reverse slide) forward backward options)
+   :forward (transition slide backward forward options)})
 
 (defn slides [{sl :slides :as pres}]
   (let [options (select-keys pres [:default-duration])]
