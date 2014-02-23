@@ -4,8 +4,11 @@
   (:require [cljs.reader :as reader]
             [d3c.core :as d3c :refer [d3]]
             [d3c.utils])
-  (:require-macros [cljs.core.async.macros :refer [go alt!]]))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop alt!]]))
 
+(reader/register-tag-parser! 'skip
+  (fn [x]
+    (with-meta x {:skip true})))
 
 (reader/register-tag-parser! 'from-to
   (fn [x]
@@ -58,47 +61,56 @@
            (.-interpolate d3)
            #(set! (.-textContent %1) %2)))
 
+(defn execute [slides dir]
+  (doseq [slide slides
+          :let [step (dir slide (fn []))]]
+    (step)))
+
+(defn upcoming [[first-slide & remaining-slides :as slides]]
+  (if (:skip first-slide)
+    [(take-while :skip slides)
+     (drop-while :skip slides)]
+    [(take 1 slides)
+     (drop 1 slides)]))
+
+(defmulti step (fn [dir _ _] dir))
+
+(defmethod step :forward [dir past-slides future-slides]
+  (let [[slides future-slides] (upcoming future-slides)]
+    (execute slides dir)
+    [(concat past-slides (filter identity slides)) future-slides]))
+
+(defmethod step :backward [dir past-slides future-slides]
+  (let [[slides past-slides] (upcoming (reverse past-slides))]
+    (execute slides dir)
+    [(reverse past-slides) (concat (filter identity slides) future-slides)]))
+
 (defn run [slides]
   (let [<-forward (chan)
         <-backward (chan)]
-    (go
-      (let [past-slides-cheat (atom nil)
-            future-slides-cheat (atom slides)]
-        (loop []
-          (let [past-slides @past-slides-cheat
-                [{:keys [forward] :or {forward (fn [])} :as next-slide} & future-slides] @future-slides-cheat
-                {:keys [backward] :or {backward (fn [])} :as last-slide} (last past-slides)]
-            (alt!
-              <-forward (do
-                          (forward)
-                          (reset! past-slides-cheat (concat past-slides (filter identity [next-slide])))
-                          (reset! future-slides-cheat future-slides))
-              <-backward (do
-                           (backward)
-                           (reset! past-slides-cheat (butlast past-slides))
-                           (reset! future-slides-cheat (concat (filter identity [last-slide next-slide]) future-slides)))))
-          (recur))))
+    (go-loop [past-slides nil
+              future-slides slides]
+      (let [dir (alt!
+                  <-forward :forward
+                  <-backward :backward)
+            [ps fs] (step dir past-slides future-slides)]
+        (recur ps fs)))
     [<-backward <-forward]))
 
+(defn extract [f]
+  #(if (:transition (meta %)) (f %) %))
+
 (defn backward [transition]
-  (prewalk (fn [settings]
-             (cond
-               (:transition (meta settings)) (first settings)
-               :else settings))
-           transition))
+  (prewalk (extract first) transition))
 
 (defn forward [transition]
-  (prewalk (fn [settings]
-             (cond
-               (:transition (meta settings)) (second settings)
-               :else settings))
-           transition))
+  (prewalk (extract second) transition))
 
 (defn collapse-tween [{:keys [tween] :as transition}]
   (merge (dissoc transition :tween) tween))
 
-(defn transition [slide initial direction {:keys [default-duration]}]
-  (fn []
+(defn transition [slide direction {:keys [default-duration]}]
+  (let [initial (if (= direction forward) backward forward)]
     (go
       (doseq [{t :transition
                d :delay
@@ -118,9 +130,23 @@
             (.ease easing)
             (d3c/configure! (direction t))))))))
 
+(defn skip [slide direction _]
+  (doseq [{t :transition
+           :keys [sel]} slide]
+    (-> (.selectAll d3 sel)
+      (d3c/configure! (direction (collapse-tween t))))))
+
+(defn handle [slide direction {skip-slide :skip :as options}]
+  (fn []
+    (let [f (if skip-slide skip transition)]
+      (f slide direction options))))
+
 (defn make-slide [slide options]
-  {:backward (transition (reverse slide) forward backward options)
-   :forward (transition slide backward forward options)})
+  (let [skip (:skip (meta slide))
+        options (assoc options :skip skip)]
+    {:backward (handle (reverse slide) backward options)
+     :forward (handle slide forward options)
+     :skip skip}))
 
 (defn slides [{sl :slides :as pres}]
   (let [options (select-keys pres [:default-duration])]
