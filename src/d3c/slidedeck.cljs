@@ -109,8 +109,11 @@
 (defn collapse-tween [{:keys [tween] :as transition}]
   (merge (dissoc transition :tween) tween))
 
+(defn opposing [direction]
+  (if (= direction forward) backward forward))
+
 (defn transition [slide direction {:keys [default-duration]}]
-  (let [initial (if (= direction forward) backward forward)]
+  (let [initial (opposing direction)]
     (go
       (doseq [{t :transition
                d :delay
@@ -131,10 +134,15 @@
             (d3c/configure! (direction t))))))))
 
 (defn skip [slide direction _]
-  (doseq [{t :transition
-           :keys [sel]} slide]
-    (-> (.selectAll d3 sel)
-      (d3c/configure! (direction (collapse-tween t))))))
+  (let [initial (opposing direction)]
+    (doseq [{t :transition
+             :keys [sel]} slide
+            :when (not= :wait t)]
+      (-> (.selectAll d3 sel)
+        (d3c/configure! (initial (collapse-tween t)))
+        .transition
+        (.duration 0)
+        (d3c/configure! (direction t))))))
 
 (defn handle [slide direction {skip-slide :skip :as options}]
   (fn []
