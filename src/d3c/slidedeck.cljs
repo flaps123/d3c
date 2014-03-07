@@ -119,10 +119,11 @@
                d :delay
                dur :duration
                easing :ease
-               :keys [sel]
+               :keys [sel after-backward]
                :or {d 0
                     dur default-duration
-                    easing "cubic-in-out"}} slide]
+                    easing "cubic-in-out"
+                    after-backward (fn [])}} slide]
         (if (= :wait t)
           (<! (timeout (* 1000 d)))
           (-> (.selectAll d3 sel)
@@ -131,7 +132,11 @@
             (.delay (if (fn? d) d (* 1000 d)))
             (.duration (* 1000 dur))
             (.ease easing)
-            (d3c/configure! (direction t))))))))
+            (d3c/configure! (direction t))
+            (.each "end" (fn []
+                           (this-as el
+                             (when (= direction backward)
+                               (d3c/configure! (.select d3 el) after-backward)))))))))))
 
 (defn skip [slide direction _]
   (let [initial (opposing direction)]
