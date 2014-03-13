@@ -38,6 +38,12 @@
 (defn translate [dx dy]
   (str "translate(" dx ", " dy ")"))
 
+(defn translate-x [dx]
+  (translate dx 0))
+
+(defn translate-y [dy]
+  (translate 0 dy))
+
 (defn scale
   ([sx]
    (str "scale(" sx ")"))
