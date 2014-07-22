@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
+                 [org.clojure/clojurescript "0.0-2014"]
                  [net.drib/strokes "0.5.1"]]
   :scm {:name "git"
         :url "https://github.com/exupero/d3c"})
